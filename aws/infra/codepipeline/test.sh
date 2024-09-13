@@ -29,16 +29,16 @@ echo "Source artifact reference: $CODEBUILD_SOURCE_VERSION"
 echo "Build started"
  
 
-cp -r aws/infra/codepipeline/* Ohana-Springboot/
+# cp -r aws/infra/codepipeline/* Ohana-Springboot/
  
 
-cd Ohana-Springboot || exit
+# cd Ohana-Springboot || exit
  
 
-ls
+# ls
  
 
-export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain matson --domain-owner 891377353125 --region us-east-1 --query authorizationToken --output text)
+# export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain matson --domain-owner 891377353125 --region us-east-1 --query authorizationToken --output text)
  
 
 echo "Integration of CodeArtifact and authorizing"
