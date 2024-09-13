@@ -1,0 +1,6 @@
+connection:
+  region: us3
+scan_info:
+  - app_name: ankitadevops.online
+    scan_config_name: http://ankitadevops.online
+status_check_interval: 60

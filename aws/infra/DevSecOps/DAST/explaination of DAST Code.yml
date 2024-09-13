@@ -1,0 +1,53 @@
+Existing Code Explanation
+bin/main.py:
+
+Purpose: This is the entry point of the script. It sets up the configuration, logging, and calls the main scan automation function.
+Key Parts:
+Loads the configuration from settings.yml.
+Sets up logging to a file scan_automation.log.
+Retrieves the API key and region from the configuration.
+Calls scan_automation.create_scan(api_key, region, settings) to start the scan automation process.
+
+
+config/settings.yml:
+
+Purpose: Holds configuration details for the scan automation.
+Key Parts:
+connection: Contains the API key and region.
+scan_info: A list of applications and scan configurations to run.
+status_check_interval: How often to check the scan status.
+
+lib/helpers/insightappsec.py:
+
+Purpose: Contains methods to interact with the InsightAppSec API.
+Key Parts:
+submit_scan: Submits a scan to the InsightAppSec API.
+get_scan: Retrieves the status and details of a specific scan.
+search: Performs a search in the InsightAppSec API to retrieve data like app or scan config IDs.
+get_url_id: Extracts the ID from a URL.
+
+
+lib/helpers/scan_automation.py:
+
+Purpose: Orchestrates the scan creation, tracking, and reporting processes.
+Key Parts:
+create_scan: The main function that handles the entire scan process from creating scans to reporting findings.
+report_findings: Reports the number of vulnerabilities found in each scan.
+track_scans: Tracks the status of ongoing scans.
+read_settings: Reads the scan settings from the configuration.
+submit_scans: Submits all the scans based on the scan configuration.
+get_ids: Retrieves the IDs for applications and scan configurations.
+log_status: Logs the status of a specific scan.
+
+
+key-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
+
+
+
+<distributionManagement>
+  <repository>
+    <id>matson-domain-matson-repository</id>
+    <name>matson-domain-matson-repository</name>
+    <url>https://matson-domain-637423476845.d.codeartifact.ap-south-1.amazonaws.com/maven/matson-repository/</url>
+  </repository>
+</distributionManagement>

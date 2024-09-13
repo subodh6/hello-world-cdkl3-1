@@ -1,0 +1,56 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Skipping yum update..."
+
+  pre_build:
+    commands:
+      - echo "version controller"
+      - yum update -y
+      - yum install jq -y
+      - yum install zip -y
+
+  build:
+    commands:
+      - echo "Source artifact reference:$CODEBUILD_SOURCE_VERSION"
+      - echo "Running build commands for lab stages..."
+      - mkdir build_artifacts
+      - cp  cas-scheduler.war build_artifacts/
+      # - aws s3 cp $CICD_CONFIG_PATH . --recursive
+      - echo "Downloading finished "
+
+  post_build:
+    commands:
+      - echo "Extracting and assuming Deployer role for cross account"
+      - param_name="/matson-hello-world/$STAGE/deploy/role"
+      - DEPLOY_ROLE=$(aws ssm get-parameter --name $param_name --with-decryption | jq -r ".Parameter.Value")
+      - role=$(aws sts assume-role --role-arn $DEPLOY_ROLE --role-session-name ohana-api-deployer-session --duration-seconds 900)
+      - KEY=$(echo $role | jq -r ".Credentials.AccessKeyId")
+      - SECRET=$(echo $role | jq -r ".Credentials.SecretAccessKey")
+      - TOKEN=$(echo $role | jq -r ".Credentials.SessionToken")
+      - export AWS_ACCESS_KEY_ID=$KEY
+      - export AWS_SESSION_TOKEN=$TOKEN
+      - export AWS_SECRET_ACCESS_KEY=$SECRET
+      - export AWS_DEFAULT_REGION=ap-south-1
+      - echo "Zipping files for codedeploy "
+      - DEPLOYMENT_PACKAGE_NAME="deployment-package-$(date +"%Y%m%d%H%M%S").zip"
+      - sed -i "s|{{WAR_FILE_NAME}}|cas-scheduler.war|g" appspec.yml
+      # - sed -i "s|\$WAR_FILE_NAME|cas-scheduler.war|g" application_start.sh
+      - cat appspec.yml
+      - cat application_start.sh
+      - zip -r $DEPLOYMENT_PACKAGE_NAME appspec.yml application_start.sh cas-scheduler.war
+      - echo "Copying zipped files to cross-account S3 bucket which will be utilized for codedeploy"
+      - aws s3 cp $DEPLOYMENT_PACKAGE_NAME $CROSS_ACCOUNT_S3_BUCKET_PATH/$DEPLOYMENT_PACKAGE_NAME
+      - aws sts get-caller-identity
+      - echo "Codedeploy deployment started"
+      - aws deploy create-deployment --application-name cas-scheduler-application --deployment-config-name CodeDeployDefault.OneAtATime --deployment-group-name cas-scheduler-deploygroup --description "Deployment Description" --s3-location bucket=$CROSS_ACCOUNT_S3_BUCKET,bundleType=zip,key=$DEPLOYMENT_PACKAGE_NAME --region ap-south-1
+      - deploymentId=$(aws deploy list-deployments --application-name cas-scheduler-application --deployment-group-name cas-scheduler-deploygroup --region ap-south-1 --query 'deployments[0]' --output text)
+      - echo "Waiting for deployment to complete..."
+      - aws deploy wait deployment-successful --deployment-id $deploymentId --region ap-south-1
+      - echo "Deployment finished"
+
+artifacts:
+  files: build_artifacts/*
+  discard-paths: yes

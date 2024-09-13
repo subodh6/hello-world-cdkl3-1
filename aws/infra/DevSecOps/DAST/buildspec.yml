@@ -1,0 +1,35 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Skipping yum update..."
+
+  pre_build:
+    commands:
+      - echo "version controller"
+      - yum update -y
+      - yum install jq -y
+      - pip install requests
+      - pip install ruamel.yaml
+
+  build:
+    commands:
+      # - cp -r aws/infra/DevSecOps/DAST/* .
+      # - cd Automation_scan/bin 
+      # - python3 main.py & PYTHON_PID=$!; tail -f ../log/scan_automation.log & TAIL_PID=$!; wait $PYTHON_PID; kill $TAIL_PID 
+      - |
+       if [ "$doDASTScan" = "Yes" ]; then
+       echo "Source artifact reference:$CODEBUILD_SOURCE_VERSION"
+       echo "automation for DAST Phase"
+       cp -r aws/infra/DevSecOps/DAST/* .
+       echo "Running DAST Scan..."
+       cd Automation_scan/bin 
+       python3 main.py & PYTHON_PID=$!; tail -f ../log/scan_automation.log & TAIL_PID=$!; wait $PYTHON_PID; kill $TAIL_PID 
+       else
+       echo "Skipping DAST and proceeding with Deploy"
+       fi
+
+  post_build:
+    commands:
+      - echo "DAST phase completed "

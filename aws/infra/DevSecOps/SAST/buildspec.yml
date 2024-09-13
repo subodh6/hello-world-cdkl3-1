@@ -1,0 +1,58 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Install phase started"
+      - yum update -y
+      - yum install jq -y
+
+  pre_build:
+    commands:
+      - echo "Pre-build phase started"
+      - export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain matson --domain-owner 891377353125 --region us-east-1 --query authorizationToken --output text)
+      
+  build:
+    commands:
+      - |
+        if [ "$doStaticScan" = "Yes" ]; then
+          echo "Starting SAST and SCA with Coverity"
+          polaris_token="/ohana-api/polaris-synopsys-token"
+          export BRIDGE_POLARIS_ACCESSTOKEN=$(aws ssm get-parameter --name $polaris_token --with-decryption --query "Parameter.Value" --output text)
+          curl -fLsS -o bridge.zip https://sig-repo.synopsys.com/artifactory/bds-integrations-release/com/synopsys/integration/synopsys-bridge/latest/synopsys-bridge-linux64.zip && unzip -qo -d /tmp bridge.zip && rm -f bridge.zip
+          cp -r aws/infra/DevSecOps/SAST/* Ohana-Springboot/
+          cp -r aws/infra/codepipeline/* Ohana-Springboot/
+          cd Ohana-Springboot
+          sed -i 's/clean-command: "echo '\''Skipping clean command'\''"/clean-command: "mvn clean install -s settings.xml"/' coverity.yaml
+          # sed -i 's/build-command: "echo '\''Skipping build command'\''"/build-command: "mvn deploy -s settings.xml"/' coverity.yaml
+          cat coverity.yaml
+          # /tmp/synopsys-bridge --verbose --stage polaris --input inputFile.json
+          /tmp/synopsys-bridge --verbose --stage polaris polaris.project.name="Ohana-API" polaris.branch.name="main" polaris.application.name="Terminals" polaris.assessment.types=SAST polaris.serverurl="https://polaris.synopsys.com"
+          /tmp/synopsys-bridge --verbose --stage polaris polaris.project.name="Ohana-API" polaris.branch.name="main" polaris.application.name="Terminals" polaris.assessment.types=SCA polaris.serverurl="https://polaris.synopsys.com"
+          echo "SAST and SCA phases completed"
+        else
+          echo "Skipping SAST/SCA and proceeding with build"
+          echo "Source artifact reference: $CODEBUILD_SOURCE_VERSION"
+          echo "Build started"
+          cp -r aws/infra/DevSecOps/SAST/* Ohana-Springboot/
+          cp -r aws/infra/codepipeline/* Ohana-Springboot/
+          cd Ohana-Springboot
+          mvn clean install -s settings.xml
+          echo "Build Completed"
+          # echo "Publishing artifact to CodeArtifact"
+          # mvn deploy -s settings.xml
+          ls
+        fi
+  post_build:
+    commands:
+      -   echo "SAST/SCA phases completed"
+      -   echo "Post-build phase started"
+      -   cp target/hello-world-war-1.0.2.war .
+      -   mv hello-world-war-1.0.2.war cas-scheduler.war
+      -   mkdir build_artifacts
+      -   cp -R cas-scheduler.war buildspec-lab.yml buildspec.yml appspec.yml application_start.sh build_artifacts/
+
+artifacts:
+  files:
+    - '**/build_artifacts/*'
+  discard-paths: yes

@@ -1,0 +1,59 @@
+version: 0.2
+ 
+phases:
+  install:
+   # runtime-versions:
+   #    python: 3.10  # Replace with the Python version you need
+
+   commands:
+      - echo "Skipping yum update..."
+      - sudo su
+      - cd  aws/infra/codepipeline/
+      - chmod +x test.sh
+      - ./test.sh
+      
+     
+
+ 
+  # pre_build:
+  #   commands:
+  #     - echo "version controller"
+  #     - yum update -y
+  #     - yum install jq -y
+  #     - yum install zip -y
+  #     - pip install requests
+  #     - pip install ruamel.yaml
+ 
+  # build:
+  #   commands:
+  #     - echo "Source artifact reference:$CODEBUILD_SOURCE_VERSION"
+  #     - echo "Build started"
+  #     - cp -r aws/infra/codepipeline/*  Ohana-Springboot/
+  #     - cd Ohana-Springboot
+  #     - ls
+  #     - export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token --domain matson --domain-owner 891377353125 --region us-east-1 --query authorizationToken --output text)
+  #     - echo "Integration of CodeArtifact and authorizing"
+  #     - echo "Build Initiated"
+  #     - mvn clean install -s settings.xml
+  #     - echo "Build Completed"
+  #     # - echo "publishing artifact to CodeArtifact"
+  #     #- mvn deploy -s settings.xml
+  #     # - echo "publishing artifact completed"
+
+   
+ 
+#   post_build:
+#     commands:
+#       - echo "Downloading Required files for codedeploy "
+#       - cp target/cas-scheduler-admin-1.0.2.war .
+#       - mv cas-scheduler-admin-1.0.2.war cas-scheduler.war
+#       - mkdir build_artifacts
+#       - cp cas-scheduler.war buildspec-lab.yml   appspec.yml application_start.sh build_artifacts/
+      
+    
+ 
+# artifacts:
+#   files: '**/build_artifacts/*'
+#   discard-paths: yes
+
+

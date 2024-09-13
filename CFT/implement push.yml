@@ -1,0 +1,328 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploy a CI/CD pipeline for EC2 with Load balancer.dhg
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Description: The GitHub repository **Mandatory field
+    AllowedPattern: ".+"
+
+  GitHubBranch:
+    Type: String
+    Description: The GitHub branch name to deploy **Mandatory field
+    AllowedPattern: ".+"
+
+  GitHubUser:
+    Type: String
+    Description: The GitHub Org Name **Mandatory field
+    AllowedPattern: ".+"
+    #Default: "MatsonInc"
+
+  CodeArtifactRepository:
+    Type: String
+    Description: The Codeartifact Repository used to Build&deploy application **Mandatory field
+    AllowedPattern: ".+"
+    #Default: "Central"
+
+  CodeBuildEnvironmentType:
+    Type: String
+    Default: "LINUX_CONTAINER"
+    Description: The build container type **Mandatory field
+
+  CodeBuildComputeType:
+    Type: String
+    Default: "BUILD_GENERAL1_SMALL"
+    Description: The build compute type **Mandatory field
+
+  CodeBuildImage:
+    Type: String
+    Default: "aws/codebuild/amazonlinux2-x86_64-standard:5.0"
+    Description: The build image
+
+  labAccountId:
+    Type: String
+    Description: Account ID for matsonlabs
+    AllowedPattern: ".+"
+  #  Default: 11111111
+  
+  codePipelineBucket:
+    Type: String
+    Description: Account ID for matsonlabs
+    AllowedPattern: ".+"  
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "GitHub Config"
+        Parameters:
+          - GitHubUser
+          - GitHubRepo
+          - GitHubBranch
+      - Label:
+          default: "CodeBuild Config"
+        Parameters:
+          - CodeBuildEnvironmentType
+          - CodeBuildComputeType
+          - CodeBuildImage
+      - Label:
+          default: "Account Config"
+        Parameters:
+          - labAccountId
+
+    ParameterLabels:
+      GitHubUser:
+        default: GitHub User Name
+      GitHubRepo:
+        default: GitHub Repo Name
+      GitHubBranch:
+        default: GitHub Repo Branch Name
+      GitHubToken:
+        default: GitHub Personal Access Token
+      CodeBuildEnvironmentType:
+        default: CodeBuild Type
+      CodeBuildComputeType:
+        default: CodeBuild Instance Type
+      CodeBuildImage:
+        default: CodeBuild image
+      labAccountId:
+        default: Account ID for  AWS Lab Env
+
+Resources:
+
+  GitHubCodeStarConnection:
+    Type: AWS::CodeStarConnections::Connection
+    Properties:
+      ConnectionName: !Sub ${AWS::StackName}-Connection
+      ProviderType: GitHub
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      RoleName: !Sub ${AWS::StackName}-codebuild-role
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-codebuild-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-*"
+                  - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${AWS::StackName}-*/*"
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${GitHubRepo}/*
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketAcl
+                  - s3:GetBucketLocation
+                Resource:
+                  #- !Sub arn:aws:s3:::${AWS::StackName}/*
+                  - !Sub arn:aws:s3:::${codePipelineBucket}/*
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: # cross-account deploy roles
+                  - !Sub arn:aws:iam::${labAccountId}:role/${AWS::StackName}-deployer-role
+              - Effect: Allow
+                Action:
+                  - sts:GetServiceBearerToken
+                  - codeartifact:List*
+                  - codeartifact:Describe*
+                  - codeartifact:ReadFromRepository
+                  - codeartifact:Get*
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - codeartifact:PublishPackageVersion
+                  - codeartifact:PutPackageMetadata
+                Resource:
+                  - !Sub arn:aws:codeartifact:${AWS::Region}:${AWS::AccountId}:package/matson/${CodeArtifactRepository}/*
+                  
+
+  MatsonCodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      RoleName: !Sub ${AWS::StackName}-role
+      Policies:
+        - PolicyName: !Sub ${AWS::StackName}-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource:
+                  - !GetAtt CodeBuild.Arn
+                  - !GetAtt CodeBuildDeployLab.Arn
+              - Effect: Allow
+                Action:
+                  - codestar-connections:UseConnection
+                Resource:
+                  - !Ref GitHubCodeStarConnection
+              - Effect: Allow
+                Action:
+                  - s3:Put*
+                  - s3:Get*
+                Resource:
+                  #- !Sub "arn:aws:s3:::${AWS::StackName}/*"
+                  - !Sub "arn:aws:s3:::${codePipelineBucket}/*"
+  #
+  # pipeline bucket
+  #
+  # codePipelineBucket:
+  #   Type: AWS::S3::Bucket
+  #   Properties:
+  #     BucketName: !Sub ${AWS::StackName}
+  #     LifecycleConfiguration:
+  #       Rules:
+  #         - Id: !Sub ${AWS::StackName}-lifecycle-policy
+  #           Status: Enabled
+  #           Prefix: !Sub "${AWS::StackName}/SourceArti/"
+  #           Transition:
+  #             StorageClass: INTELLIGENT_TIERING
+  #             TransitionInDays: 30
+  #           ExpirationInDays: 300
+
+  CodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name:
+        Fn::Sub: "${AWS::StackName}-build"
+      Description: Build application
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: aws/infra/codepipeline/buildspec-build.yml
+      TimeoutInMinutes: 40
+      Environment:
+        Type: !Ref CodeBuildEnvironmentType
+        ComputeType: !Ref CodeBuildComputeType
+        Image: !Sub ${CodeBuildImage}
+        EnvironmentVariables:
+          - Name: STAGE
+            Value: "Build"
+          - Name: CICD_CONFIG_PATH
+            Value: "s3://cicd-configuration/"
+
+  CodeBuildDeployLab:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name:
+        Fn::Sub: "${AWS::StackName}-build-lab"
+      Description: Deploy to Lab
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec-lab.yml
+      TimeoutInMinutes: 40
+      Environment:
+        Type: !Ref CodeBuildEnvironmentType
+        ComputeType: !Ref CodeBuildComputeType
+        Image: !Sub ${CodeBuildImage}
+        EnvironmentVariables:
+          - Name: STAGE
+            Value: "lab"
+          - Name: CROSS_ACCOUNT_S3_BUCKET
+            Value: !Sub ${AWS::StackName}-lab
+          - Name: account
+            Value: "Lab"
+          - Name: CICD_CONFIG_PATH
+            Value: "s3://cicd-configuration/"
+          - Name: CROSS_ACCOUNT_S3_BUCKET_PATH
+            Value: !Sub s3://${AWS::StackName}-lab
+  #
+  # pipeline
+  #
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub ${AWS::StackName}
+      RoleArn: !GetAtt MatsonCodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref codePipelineBucket
+      Stages:
+        - Name: Source-stage
+          Actions:
+            - Name: Github
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: "1"
+              OutputArtifacts:
+                - Name: SourceArtifacts
+              Configuration:
+                ConnectionArn: !Ref GitHubCodeStarConnection
+                FullRepositoryId: !Sub "${GitHubUser}/${GitHubRepo}"
+                BranchName: !Ref GitHubBranch
+              RunOrder: 1
+        - Name: Build-stage
+          Actions:
+            - Name: Building-Application
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: "1"
+                Provider: CodeBuild
+              InputArtifacts:
+                - Name: SourceArtifacts
+              OutputArtifacts:
+                - Name: BuildArtifacts
+              Configuration:
+                ProjectName: !Ref CodeBuild
+              RunOrder: 1
+        - Name: Labs-stage
+          Actions:
+            - Name: Deploy-to-MatsonLabs
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: "1"
+                Provider: CodeBuild
+              InputArtifacts:
+                - Name: BuildArtifacts
+              OutputArtifacts:
+                - Name: LabDeploymentArtifacts
+              Configuration:
+                ProjectName: !Ref CodeBuildDeployLab
+              RunOrder: 1
+
+Outputs:
+  CodeStarGithubConnectionARN:
+    Description: Connection ARN for the Codestar connection
+    Value: !Ref GitHubCodeStarConnection

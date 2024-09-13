@@ -1,0 +1,9 @@
+capture:
+  build:
+    # Placeholder values to satisfy Coverity Capture tool
+    clean-command: "echo 'Skipping clean command'"
+    build-command: "echo 'Skipping build command'"
+  # compiler-configuration:
+  #   # Adjusted cov-configure to skip pom.xml, .pom, and files with 'remove' pattern during analysis
+  #   cov-configure: [["--java", "--xml-option=skip_file:\\\\remove\\\\"]]
+

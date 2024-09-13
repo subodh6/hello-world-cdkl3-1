@@ -1,0 +1,49 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.efsavage</groupId>
+    <artifactId>cas-scheduler-admin</artifactId>
+    <version>1.0.2</version>
+    <packaging>war</packaging>
+    <name>helloworld-app</name>
+    <description>Simplest possible Java Webapp</description>
+ 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.mortbay.jetty</groupId>
+                <artifactId>jetty-maven-plugin</artifactId>
+                <version>8.1.5.v20120716</version>
+                <configuration>
+                    <scanIntervalSeconds>0</scanIntervalSeconds>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.2</version>
+            </plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>10.5.1</version> <!-- Make sure to use the latest version -->
+            </plugin>
+        </plugins>
+    </build>
+ 
+    <repositories>
+        <repository>
+            <id>matson-maven-central-store</id>
+            <url>https://matson-891377353125.d.codeartifact.us-east-1.amazonaws.com/maven/maven-central-store/</url>
+        </repository>
+    </repositories>
+ 
+    <distributionManagement>
+        <repository>
+            <id>matson-cas-scheduler</id>
+            <name>matson-cas-scheduler</name>
+            <url>https://matson-891377353125.d.codeartifact.us-east-1.amazonaws.com/maven/cas-scheduler/</url>
+        </repository>
+    </distributionManagement>
+</project>
