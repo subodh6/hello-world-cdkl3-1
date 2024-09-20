@@ -5,4 +5,4 @@ npm install aws-cdk
 npm install aws-cdk-lib
 npm install constructs
 npx cdk synth
-npx cdk deploy
+npx cdk deploy --require-approval never
