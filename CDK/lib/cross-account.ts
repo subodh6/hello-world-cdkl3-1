@@ -34,7 +34,7 @@ export class crossaccount extends cdk.Stack {
     });
     
     // Attach the AWS-managed policy 'AWSCodeDeployRole'
-    codeDeployRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSCodeDeployRole'));
+    codeDeployRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSCodeDeployRoleForEC2'));
     
 
     // Create CodeDeploy Application with stack name in the application name
