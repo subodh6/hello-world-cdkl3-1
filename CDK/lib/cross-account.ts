@@ -89,7 +89,7 @@ export class crossaccount extends cdk.Stack {
       ec2TagFilters: [
         {
           key: 'Name',
-          value: 'matson', // Replace with your EC2 tag
+          value: 'MyEC2Instance', // Replace with your EC2 tag
           type: 'KEY_AND_VALUE',
         },
       ],
