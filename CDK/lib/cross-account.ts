@@ -13,7 +13,7 @@ export class crossaccount extends cdk.Stack {
 
     // Create an S3 bucket for CodePipeline artifacts with stack name in the bucket name
     const codePipelineBucket = new s3.Bucket(this, 'CodePipelineBucket', {
-      bucketName: `${this.stackName}-dev`,
+      bucketName: `${this.stackName}-lab`,
       lifecycleRules: [{
         id: config.bucketLifecyclePolicy.id,
         enabled: config.bucketLifecyclePolicy.status === 'Enabled',
@@ -29,50 +29,13 @@ export class crossaccount extends cdk.Stack {
 
     // Create CodeDeploy Role with stack name in the role name
     const codeDeployRole = new iam.Role(this, 'CodeDeployRole', {
-      roleName: `${this.stackName}-deployer-role`, // Add stack name to the role name
+      roleName: `${this.stackName}-codedeploy-role`, // Add stack name to the role name
       assumedBy: new iam.ServicePrincipal('codedeploy.amazonaws.com'),
-      inlinePolicies: {
-        CodeDeployPermissions: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              actions: [
-                "ec2:Describe*",
-                "s3:Get*",
-                "s3:List*",
-                "autoscaling:CompleteLifecycleAction",
-                "autoscaling:DeleteLifecycleHook",
-                "autoscaling:PutInstanceInStandby",
-                "autoscaling:PutLifecycleHook",
-                "autoscaling:RecordLifecycleActionHeartbeat",
-                "autoscaling:ResumeProcesses",
-                "autoscaling:SuspendProcesses",
-                "autoscaling:TerminateInstanceInAutoScalingGroup",
-                "cloudwatch:DescribeAlarms",
-                "cloudwatch:PutMetricAlarm",
-                "cloudwatch:DeleteAlarms",
-                "cloudwatch:GetMetricStatistics",
-                "cloudformation:DescribeStacks",
-                "cloudformation:ListStackResources",
-                "cloudformation:DescribeStackResources",
-                "sns:Publish",
-                "sns:ListTopics",
-                "sns:GetTopicAttributes",
-                "lambda:ListFunctions",
-                "lambda:GetFunctionConfiguration",
-                "ecs:DescribeServices",
-                "ecs:DescribeTaskDefinition",
-                "ecs:DescribeTasks",
-                "ecs:ListTasks",
-                "ecs:RegisterTaskDefinition",
-                "ecs:UpdateService",
-                "iam:PassRole"
-              ],
-              resources: ["*"],
-            }),
-          ],
-        }),
-      },
     });
+    
+    // Attach the AWS-managed policy 'AWSCodeDeployRole'
+    codeDeployRole.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName('AWSCodeDeployRole'));
+    
 
     // Create CodeDeploy Application with stack name in the application name
     const codeDeployApplication = new codedeploy.CfnApplication(this, 'CodeDeployApplication', {
@@ -89,7 +52,7 @@ export class crossaccount extends cdk.Stack {
       ec2TagFilters: [
         {
           key: 'Name',
-          value: 'MyEC2Instance', // Replace with your EC2 tag
+          value: 'matson', // Replace with your EC2 tag
           type: 'KEY_AND_VALUE',
         },
       ],

@@ -8,6 +8,6 @@ const app = new cdk.App();
 //   env: { account: '637423476845', region: 'ap-south-1' },
 // });
 
-new crossaccount(app, 'matson-api-pipeline', {
-  env: { account: '954503069243', region: 'ap-south-1' },
+new crossaccount(app, 'cas-scheduler-admin1', {
+  env: { account: '954503069243', region: 'us-east-1' },
 });
