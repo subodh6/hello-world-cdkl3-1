@@ -62,9 +62,9 @@ aws sts get-caller-identity
 # Start CodeDeploy deployment
 echo "Codedeploy deployment started"
 aws deploy create-deployment \
-    --application-name cas-scheduler-admin1-application \
+    --application-name cas-scheduler-admin-l3-application \
     --deployment-config-name CodeDeployDefault.OneAtATime \
-    --deployment-group-name cas-scheduler-admin1-deploygroup \
+    --deployment-group-name cas-scheduler-admin-l3-deploygroup \
     --description "Deployment Description" \
     --s3-location bucket=$CROSS_ACCOUNT_S3_BUCKET,bundleType=zip,key=$DEPLOYMENT_PACKAGE_NAME \
     --region us-east-1
@@ -72,8 +72,8 @@ aws deploy create-deployment \
 # Wait for deployment to complete
 echo "Waiting for deployment to complete..."
 deploymentId=$(aws deploy list-deployments \
-    --application-name cas-scheduler-admin1-application \
-    --deployment-group-name cas-scheduler-admin1-deploygroup \
+    --application-name cas-scheduler-admin-l3-application \
+    --deployment-group-name cas-scheduler-admin-l3-deploygroup \
     --region us-east-1 --query 'deployments[0]' --output text)
 
 aws deploy wait deployment-successful --deployment-id "$deploymentId" --region us-east-1
