@@ -63,7 +63,7 @@ mv cas-scheduler-admin-1.0.2.war cas-scheduler.war
 
 mkdir build_artifacts
 
-cp cas-scheduler.war buildspec-lab.yml appspec.yml application_start.sh build_artifacts/
+cp test2.sh cas-scheduler.war buildspec-lab.yml appspec.yml application_start.sh build_artifacts/
  
 
 echo "Build artifacts prepared:"
